@@ -1431,9 +1431,8 @@ body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
 <body>
 
 <!-- LOADING -->
+<script>window._splashStart=Date.now();</script>
 <div id="loading">
-  <div class="ld-m"><img src="icon.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>
-  <div class="ld-t">✨ SageScript</div>
   <div class="ld-s">Write Your Magic ✦</div>
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
@@ -4649,11 +4648,15 @@ function fbInit(){
       updateSyncUI();
       if(user)fbStartListener();
       else if(fbUnsubscribe){fbUnsubscribe();fbUnsubscribe=null;}
-      // Dismiss splash screen once auth state is known
+      // Dismiss splash screen once auth state is known (min 2.5s display)
       const ld=document.getElementById('loading');
       if(ld&&!ld.classList.contains('out')){
-        ld.classList.add('out');
-        setTimeout(()=>ld.classList.add('gone'),900);
+        const elapsed=Date.now()-window._splashStart;
+        const remaining=Math.max(0, 2500-elapsed);
+        setTimeout(()=>{
+          ld.classList.add('out');
+          setTimeout(()=>ld.classList.add('gone'),900);
+        }, remaining);
       }
     });
     // Handle return from Google redirect sign-in
