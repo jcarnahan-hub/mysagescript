@@ -181,9 +181,9 @@ body.light-theme .btn-cxl{
 }
 /* Toast light */
 body.light-theme .toast{
-  background:rgba(232,220,200,.97);
-  border-color:rgba(139,94,26,.2);
-  color:#2a1e0c;
+  background:rgba(255,253,248,.97);
+  border-color:rgba(138,154,132,.4);
+  color:#3C3C3C;
 }
 /* Auto-loop bar light */
 body.light-theme .auto-btn{
@@ -476,9 +476,9 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
   font-size:7px;padding:2px 4px;border-radius:7px;z-index:3;
   max-width:75px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nb-lbl{position:absolute;bottom:8px;left:14px;right:6px;z-index:3}
-.nb-ttl{font-family:var(--font-h);font-size:13px;color:#1a1a1a;font-weight:700;text-shadow:0 1px 3px rgba(255,255,255,.6);
+.nb-ttl{font-family:var(--font-u);font-size:12px;color:#1a1a1a;font-weight:700;letter-spacing:.2px;text-shadow:0 1px 2px rgba(255,255,255,.8);
   text-shadow:0 1px 5px rgba(0,0,0,.9);line-height:1.2;font-weight:600}
-.nb-meta{font-size:8px;color:rgba(20,20,20,.7);margin-top:2px;font-weight:600;text-shadow:0 1px 2px rgba(255,255,255,.5);}
+.nb-meta{font-size:9px;color:rgba(20,20,20,.65);margin-top:2px;font-weight:500;font-family:var(--font-u);text-shadow:0 1px 2px rgba(255,255,255,.7);}
 .nb-badge{position:absolute;top:8px;right:8px;background:rgba(201,168,76,.88);
   color:#111009;font-size:7px;font-weight:700;padding:2px 5px;
   border-radius:9px;text-transform:uppercase;letter-spacing:.4px;z-index:3}
@@ -868,13 +868,13 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
 .toast-wrap{position:fixed;bottom:80px;right:14px;z-index:300;
   display:flex;flex-direction:column;gap:5px}
 @media(max-width:480px){.toast-wrap{bottom:72px;left:14px;right:14px}}
-.toast{background:rgba(20,14,6,.97);border:1px solid rgba(201,168,76,.23);
-  border-radius:10px;padding:10px 13px;color:var(--cream);font-size:12px;
+.toast{background:rgba(255,253,248,.97);border:1px solid rgba(138,154,132,.4);
+  border-radius:10px;padding:10px 13px;color:#3C3C3C;font-size:12px;
   animation:stslide .28s ease;display:flex;align-items:center;gap:8px;
-  box-shadow:0 5px 22px rgba(0,0,0,.5)}
+  box-shadow:0 5px 22px rgba(0,0,0,.12)}
 @keyframes stslide{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
 @media(max-width:480px){@keyframes stslide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}}
-.toast.ok .ti{color:var(--sage)}.toast.info .ti{color:var(--gold)}
+.toast.ok .ti{color:#8A9A84}.toast.info .ti{color:#8A9A84}
 
 /* LOADING */
 #loading{position:fixed;inset:0;z-index:999;display:flex;align-items:center;
