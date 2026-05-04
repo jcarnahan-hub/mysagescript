@@ -6273,14 +6273,14 @@ function applyTheme(mode){
 }
 
 function toggleTheme(){
-  const current=localStorage.getItem('ai_theme')||'dark';
+  const current=localStorage.getItem('ai_theme')||'light';
   const next=current==='dark'?'light':'dark';
   applyTheme(next);
   toast(next==='light'?'☀️ Warm parchment mode':'🌙 Starfield mode','info');
 }
 
 function initTheme(){
-  const saved=localStorage.getItem('ai_theme')||'dark';
+  const saved=localStorage.getItem('ai_theme')||'light';
   applyTheme(saved);
 }
 
