@@ -1496,9 +1496,15 @@ body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
     <div class="topbar">
       <button class="tb-menu-btn" onclick="toggleSidebar();event.stopPropagation();" aria-label="Menu">☰</button>
       <div class="tb-title" id="tb-title">✨ SageScript</div>
-      <div class="sync-badge" onclick="openSyncModal()" style="cursor:pointer;padding:4px 8px;border-radius:20px;border:1px solid rgba(201,168,76,.15)" title="Tap to open sync settings">
+      <div id="acct-pill" onclick="openSyncModal()" title="Account &amp; sign in"
+        style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid rgba(201,168,76,.3);font-family:var(--font-u);font-size:11px;font-weight:600;color:rgba(201,168,76,.9);transition:background .15s;flex-shrink:0;background:rgba(201,168,76,.08)">
+        <span id="acct-ico" style="font-size:13px">👤</span>
+        <span id="acct-lbl">Sign In</span>
+      </div>
+      <div id="sync-badge-wrap" onclick="openSyncModal()" title="Sync status"
+        style="cursor:pointer;display:none;align-items:center;gap:5px;padding:4px 8px;border-radius:20px;border:1px solid rgba(201,168,76,.15);flex-shrink:0">
         <div class="sync-dot"></div>
-        <span id="sync-lbl">Synced</span>
+        <span id="sync-lbl" style="font-family:var(--font-u);font-size:11px;color:rgba(201,168,76,.7)">Synced</span>
       </div>
       <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Switch theme">🌙</button>
       <div class="dt-badge" id="dt-badge"></div>
@@ -4677,6 +4683,10 @@ function updateSyncUI(){
     if(dot)dot.style.background='#555';
     return;
   }
+  const acctPill=document.getElementById('acct-pill');
+  const acctIco=document.getElementById('acct-ico');
+  const acctLbl=document.getElementById('acct-lbl');
+  const syncWrap=document.getElementById('sync-badge-wrap');
   if(fbUser){
     if(dot)dot.style.background='var(--sage)';
     if(fbDot)fbDot.style.background='var(--sage)';
@@ -4684,7 +4694,6 @@ function updateSyncUI(){
     if(syncLbl)syncLbl.textContent='Synced';
     const displayName=fbUser.displayName||fbUser.email.split('@')[0];
     if(statusTxt)statusTxt.textContent='Connected · '+displayName;
-    // Update storage status
     const storageTxt=document.getElementById('storage-status-txt');
     if(storageTxt){
       storageTxt.textContent=fbStorage?'Active':'Not ready';
@@ -4693,15 +4702,24 @@ function updateSyncUI(){
     if(emailDisplay)emailDisplay.textContent=fbUser.email;
     if(loggedIn)loggedIn.style.display='block';
     if(loggedOut)loggedOut.style.display='none';
+    // Account pill — signed in: show name + sage green
+    if(acctIco)acctIco.textContent='✦';
+    if(acctLbl)acctLbl.textContent=displayName;
+    if(acctPill){acctPill.style.borderColor='rgba(138,154,132,.6)';acctPill.style.background='rgba(138,154,132,.15)';acctPill.style.color='var(--sage)';}
+    // Sync badge — only visible when signed in
+    if(syncWrap)syncWrap.style.display='flex';
   }else{
     if(dot)dot.style.background='#e74c3c';
     if(fbDot)fbDot.style.background='#e74c3c';
     if(statusTxt)statusTxt.textContent='Not signed in';
-    // Show "Sign In" in top bar instead of "Synced" when not authenticated
-    const syncLbl=document.getElementById('sync-lbl');
-    if(syncLbl)syncLbl.textContent='Sign In';
     if(loggedIn)loggedIn.style.display='none';
     if(loggedOut)loggedOut.style.display='block';
+    // Account pill — signed out: amber prompt, hard to miss
+    if(acctIco)acctIco.textContent='👤';
+    if(acctLbl)acctLbl.textContent='Sign In';
+    if(acctPill){acctPill.style.borderColor='rgba(201,168,76,.5)';acctPill.style.background='rgba(201,168,76,.12)';acctPill.style.color='rgba(201,168,76,.95)';}
+    // Sync badge — hidden when signed out
+    if(syncWrap)syncWrap.style.display='none';
   }
 }
 
