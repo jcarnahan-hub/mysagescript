@@ -2981,7 +2981,7 @@ function renderTodo(el,text,idx){
   let h=`<div style="overflow-y:auto;height:100%;padding-bottom:48px">`;
   lines.forEach((ln,li)=>{
     const {done,txt,due}=parseTodoLine(ln);
-    const dueClass=due?dueDateClass(due):'';
+    const dueClass=due&&!done?dueDateClass(due):'';
     const dueLbl=dueDateLabel(due);
     h+=`<div class="todo-item">
       <div class="todo-check ${done?'done':''}" onclick="td(${idx},${li})"></div>
