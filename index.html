@@ -1429,7 +1429,7 @@ body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
 <script>window._splashStart=Date.now();</script>
 <div id="loading">
   <div class="ld-m"><img src="icon.png" alt="" width="140" height="140" style="width:140px;height:140px;object-fit:cover;display:block;border-radius:28px;"></div>
-  <div class="ld-t">✨ SageScript</div>
+  <div class="ld-t">SageScript</div>
   <div class="ld-s">Write Your Magic ✦</div>
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
@@ -1446,7 +1446,7 @@ body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
         <img src="icon.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block">
       </div>
       <div>
-        <div class="sb-title">✨ SageScript</div>
+        <div class="sb-title">SageScript</div>
         <div class="sb-tag">Write Your Magic</div>
       </div>
     </div>
@@ -1495,7 +1495,7 @@ body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
     <!-- Top bar -->
     <div class="topbar">
       <button class="tb-menu-btn" onclick="toggleSidebar();event.stopPropagation();" aria-label="Menu">☰</button>
-      <div class="tb-title" id="tb-title">✨ SageScript</div>
+      <div class="tb-title" id="tb-title">SageScript</div>
       <div id="acct-pill" onclick="openSyncModal()" title="Account &amp; sign in"
         style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid rgba(201,168,76,.3);font-family:var(--font-u);font-size:11px;font-weight:600;color:rgba(201,168,76,.9);transition:background .15s;flex-shrink:0;background:rgba(201,168,76,.08)">
         <span id="acct-ico" style="font-size:13px">👤</span>
@@ -7786,13 +7786,23 @@ function renderDPCal(){
   const firstDay=new Date(DP.year,DP.month,1).getDay();
   const daysInMonth=new Date(DP.year,DP.month+1,0).getDate();
 
+  // Build year options: 5 years back to 5 years forward
+  let yearOpts='';
+  for(let y=today.getFullYear()-5;y<=today.getFullYear()+5;y++){
+    yearOpts+=`<option value="${y}"${y===DP.year?' selected':''}>${y}</option>`;
+  }
+
   let h=`
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
     <button onclick="dpNav(-1)" style="background:none;border:1px solid rgba(201,168,76,.2);
       border-radius:8px;color:var(--gold);cursor:pointer;padding:4px 10px;font-size:14px">‹</button>
-    <span style="font-family:var(--font-d);font-size:15px;color:var(--gold)">
-      ${months[DP.month]} ${DP.year}
-    </span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-family:var(--font-d);font-size:15px;color:var(--gold)">${months[DP.month]}</span>
+      <select onchange="DP.year=parseInt(this.value);renderDPCal()"
+        style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);
+        border-radius:6px;color:var(--gold);font-size:13px;padding:2px 4px;
+        font-family:var(--font-u);cursor:pointer">${yearOpts}</select>
+    </div>
     <button onclick="dpNav(1)" style="background:none;border:1px solid rgba(201,168,76,.2);
       border-radius:8px;color:var(--gold);cursor:pointer;padding:4px 10px;font-size:14px">›</button>
   </div>
@@ -7822,7 +7832,7 @@ function renderDPCal(){
     }else if(isToday){
       style+=`border-color:var(--gold);color:var(--gold);font-weight:600;`;
     }else if(isPast){
-      style+=`color:rgba(201,168,76,.25);`;
+      style+=`color:rgba(253,246,232,.45);`;  // subtle, still clearly clickable
     }else{
       style+=`color:rgba(253,246,232,.75);`;
     }
