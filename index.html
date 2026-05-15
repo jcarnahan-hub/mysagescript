@@ -4974,15 +4974,21 @@ async function fbPush(){
     }));
 
     const colMeta=S.collections.map(c=>({id:c.id,name:c.name,pageCount:c.pages.length}));
+    const pushTs=new Date().toISOString();
+    // Set BEFORE await so echo is suppressed even if onSnapshot fires during the push
+    fbLastAppliedTs=new Date(pushTs).getTime();
+    // Also suppress for 10s after any push in case of clock skew or slow echo
+    clearTimeout(window._fbEchoSuppress);
+    window._fbEchoSuppress=setTimeout(()=>{},10000);
+    window._fbPushing=true;
     await setDoc(doc(fbDb,'users',uid,'data','main'),{
       notebooks:notebooksForSync,
       quickNotes:S.quickNotes,
       folders:S.folders,
       collectionsMeta:colMeta,
-      updatedAt:new Date().toISOString()
+      updatedAt:pushTs
     },{merge:true});
-    // Update our last-applied timestamp so the echo snapshot is ignored
-    fbLastAppliedTs=Date.now();
+    window._fbPushing=false;
   }catch(e){console.error('fbPush error:',e);}
 }
 
@@ -5237,8 +5243,8 @@ function fbStartListener(){
 
     // CRITICAL: Never overwrite S.notebooks while a notebook is open or closing.
     // S.nb points into S.notebooks — replacing it here silently wipes editor content.
-    if(S.nb||window._nbClosing){
-      console.log('[SageScript] onSnapshot suppressed — notebook open or closing');
+    if(S.nb||window._nbClosing||window._fbPushing){
+      console.log('[SageScript] onSnapshot suppressed — notebook open, closing, or push in flight');
       firstSnapshot=false;
       return;
     }
