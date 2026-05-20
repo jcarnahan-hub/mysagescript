@@ -1255,7 +1255,7 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
 /* Transparent fullscreen textarea for plain templates */
 #plain-textarea{
   position:absolute;inset:0;
-  padding:40px 14px 6px; /* 40px matches CSS line pattern background-position:0 40px */
+  padding:40px 24px 6px 14px; /* extra right padding so text wraps before page edge */
   background:transparent;border:none;outline:none;resize:none;
   font-family:var(--font-h);font-size:17px;line-height:32px;
   color:#1a0c02;caret-color:#c0392b;
@@ -1329,7 +1329,7 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
 /* Rich text page body */
 #rich-textarea{
   position:absolute;inset:0;
-  padding:40px 14px 20px;
+  padding:40px 24px 20px 14px; /* extra right padding so text wraps before page edge */
   background:transparent;border:none;outline:none;
   font-family:var(--font-h);font-size:17px;line-height:32px;
   color:#1a0c02;caret-color:#c0392b;
@@ -2983,15 +2983,17 @@ function renderTodo(el,text,idx){
     const {done,txt,due}=parseTodoLine(ln);
     const dueClass=due&&!done?dueDateClass(due):'';
     const dueLbl=dueDateLabel(due);
-    h+=`<div class="todo-item">
-      <div class="todo-check ${done?'done':''}" onclick="td(${idx},${li})"></div>
-      <input class="todo-txt ${done?'done':''}" value="${esc(txt)}"
+    h+=`<div class="todo-item" style="align-items:flex-start">
+      <div class="todo-check ${done?'done':''}" onclick="td(${idx},${li})" style="margin-top:6px;flex-shrink:0"></div>
+      <textarea class="todo-txt ${done?'done':''}"
         onchange="tdUpd(${idx},${li},this.value)"
+        oninput="tdAutoHeight(this)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();}"
         placeholder="Task…"
         style="font-family:var(--font-h);font-size:20px;color:#1a0c02 !important;-webkit-text-fill-color:#1a0c02 !important;opacity:1 !important;border:none;
-        outline:none;background:transparent;flex:1;width:100%;line-height:1.5;
-        -webkit-user-select:auto;user-select:auto">
-      <span class="todo-due ${dueClass}" onclick="tdSetDue(${idx},${li},'${due}')">${esc(dueLbl)}</span>
+        outline:none;background:transparent;flex:1;min-width:0;line-height:1.5;resize:none;overflow:hidden;height:auto;
+        -webkit-user-select:auto;user-select:auto;padding:0;">${esc(txt)}</textarea>
+      <span class="todo-due ${dueClass}" onclick="tdSetDue(${idx},${li},'${due}')" style="flex-shrink:0;margin-top:4px">${esc(dueLbl)}</span>
     </div>`;
   });
   h+=`<div class="todo-item">
@@ -3004,6 +3006,8 @@ function renderTodo(el,text,idx){
       placeholder="Add task (Enter)…" onkeydown="tdAdd(event,${idx})">
   </div></div>`;
   el.innerHTML=h;
+  // Auto-size all task textareas to fit their content
+  el.querySelectorAll('textarea.todo-txt').forEach(ta=>tdAutoHeight(ta));
   // Update badge on notebook card
   updateTaskBadge(S.nb);
 }
@@ -3015,6 +3019,10 @@ function td(idx,li){
   ln[li]=formatTodoLine(!done,txt,due);
   S.nb.pages[idx]=ln.join('\n');
   save();renderPage();
+}
+function tdAutoHeight(ta){
+  ta.style.height='auto';
+  ta.style.height=ta.scrollHeight+'px';
 }
 function tdUpd(idx,li,v){
   const ln=(S.nb.pages[idx]||'').split('\n');
