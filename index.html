@@ -3020,7 +3020,10 @@ function td(idx,li){
   const l=ln[li]||'';
   const {done,txt,due}=parseTodoLine(l);
   ln[li]=formatTodoLine(!done,txt,due);
-  S.nb.pages[idx]=ln.join('\n');
+  // Auto-sort: active tasks first, completed tasks at bottom (preserve relative order within each group)
+  const active=ln.filter(l=>l.trim()&&!parseTodoLine(l).done);
+  const completed=ln.filter(l=>l.trim()&&parseTodoLine(l).done);
+  S.nb.pages[idx]=[...active,...completed].join('\n');
   save();renderPage();
 }
 function tdAutoHeight(ta){
