@@ -2531,8 +2531,13 @@ function init(){
 
   // Keyboard
   document.addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight'&&S.nb)flip(1);
-    if(e.key==='ArrowLeft'&&S.nb)flip(-1);
+    // Don't intercept arrow keys while user is typing in any input/textarea/contenteditable
+    const tag=document.activeElement?.tagName;
+    const isEditing=tag==='INPUT'||tag==='TEXTAREA'||document.activeElement?.isContentEditable;
+    if(!isEditing){
+      if(e.key==='ArrowRight'&&S.nb)flip(1);
+      if(e.key==='ArrowLeft'&&S.nb)flip(-1);
+    }
     if(e.key==='Escape'&&S.nb)closeNB();
     if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openNewNB();}
     if((e.ctrlKey||e.metaKey)&&e.key==='q'){e.preventDefault();toggleQN();}
@@ -2626,6 +2631,7 @@ function seed(){
     {title:'Personal Notes', folder:'personal',cov:7, emoji:'🌸', pages:[''], tpl:'lined'},
   ];
   seeds.forEach(s=>S.notebooks.push(mkNB(s)));
+  window._freshDevice=true; // flag: local data is seeds only, always trust Firebase over this
   save();
 }
 function mkNB(s){
@@ -2947,10 +2953,17 @@ async function renderPage(){
    __DONE__Task text||YYYY-MM-DD
 ── */
 function parseTodoLine(ln){
+  // Handle legacy lines that have no prefix — treat as active todo
   const done=ln.startsWith('__DONE__');
   const rest=ln.replace(/^__(TODO|DONE)__/,'');
   const parts=rest.split('||');
   return {done, txt:parts[0].trim(), due:parts[1]||''};
+}
+function normalizeTodoLine(ln){
+  // Ensure every line has a __TODO__ or __DONE__ prefix (migrate legacy lines)
+  if(ln.startsWith('__TODO__')||ln.startsWith('__DONE__'))return ln;
+  const parts=ln.split('||');
+  return '__TODO__'+ln; // legacy line: treat as active, preserve content
 }
 function formatTodoLine(done,txt,due){
   return `${done?'__DONE__':'__TODO__'}${txt}${due?'||'+due:''}`;
@@ -2980,7 +2993,8 @@ function dueDateLabel(due){
 }
 
 function renderTodo(el,text,idx){
-  const lines=(text||'').split('\n').filter(l=>l.trim());
+  // Normalize any legacy lines before rendering
+  const lines=(text||'').split('\n').filter(l=>l.trim()).map(normalizeTodoLine);
   let h=`<div style="overflow-y:auto;height:100%;padding-bottom:48px">`;
   lines.forEach((ln,li)=>{
     const {done,txt,due}=parseTodoLine(ln);
@@ -3020,9 +3034,11 @@ function td(idx,li){
   const l=ln[li]||'';
   const {done,txt,due}=parseTodoLine(l);
   ln[li]=formatTodoLine(!done,txt,due);
+  // Normalize any legacy lines (no prefix) before sorting
+  const normalized=ln.map(l=>l.trim()?normalizeTodoLine(l):l);
   // Auto-sort: active tasks first, completed tasks at bottom (preserve relative order within each group)
-  const active=ln.filter(l=>l.trim()&&!parseTodoLine(l).done);
-  const completed=ln.filter(l=>l.trim()&&parseTodoLine(l).done);
+  const active=normalized.filter(l=>l.trim()&&!parseTodoLine(l).done);
+  const completed=normalized.filter(l=>l.trim()&&parseTodoLine(l).done);
   S.nb.pages[idx]=[...active,...completed].join('\n');
   save();renderPage();
 }
@@ -5274,8 +5290,9 @@ function fbStartListener(){
 
     // Skip if remote is older than or same as what we pushed
     // (prevents echo: we push → listener fires → we apply our own push)
+    // EXCEPTION: if this is a fresh device (seeded defaults only), always trust Firebase
     const localTs=new Date(S.notebooks[0]?.modified||0).getTime();
-    if(remoteTs<=localTs){
+    if(!window._freshDevice && remoteTs<=localTs){
       firstSnapshot=false;
       return;
     }
@@ -5309,6 +5326,7 @@ function fbStartListener(){
     }
 
     window._applyingRemoteData=true; // flag to prevent echo
+    window._freshDevice=false; // no longer a fresh device — real data is loading
     console.log('[SageScript] onSnapshot APPLYING remote data. remoteTs=',remoteTs,'localTs=',localTs,'S.nb=',S.nb?.id);
     if(data.notebooks)S.notebooks=data.notebooks;
     if(data.quickNotes)S.quickNotes=data.quickNotes;
