@@ -2995,7 +2995,16 @@ function dueDateLabel(due){
 function renderTodo(el,text,idx){
   // Normalize any legacy lines before rendering
   const lines=(text||'').split('\n').filter(l=>l.trim()).map(normalizeTodoLine);
-  let h=`<div style="overflow-y:auto;height:100%;padding-bottom:48px">`;
+  const addTaskRow=`<div class="todo-item" style="margin-bottom:14px;border-bottom:1px solid rgba(138,154,132,0.2);padding-bottom:14px;">
+    <div class="todo-check" style="border-style:dashed;opacity:.35"></div>
+    <input style="font-family:var(--font-h);font-size:20px;color:#1a0c02 !important;
+      -webkit-text-fill-color:#1a0c02 !important;opacity:1 !important;
+      border:none;outline:none;background:rgba(255,254,248,0.7);flex:1;line-height:1.5;
+      border-radius:6px;padding:4px 8px;
+      -webkit-user-select:auto;user-select:auto"
+      placeholder="Add task (Enter)…" onkeydown="tdAdd(event,${idx})">
+  </div>`;
+  let h=`<div style="overflow-y:auto;height:100%;padding-bottom:48px">`+addTaskRow;
   lines.forEach((ln,li)=>{
     const {done,txt,due}=parseTodoLine(ln);
     const dueClass=due&&!done?dueDateClass(due):'';
@@ -3011,15 +3020,7 @@ function renderTodo(el,text,idx){
       <span class="todo-due ${dueClass}" onclick="tdSetDue(${idx},${li},'${due}')" style="flex-shrink:0;margin-top:4px">${esc(dueLbl)}</span>
     </div>`;
   });
-  h+=`<div class="todo-item">
-    <div class="todo-check" style="border-style:dashed;opacity:.35"></div>
-    <input style="font-family:var(--font-h);font-size:20px;color:#1a0c02 !important;
-      -webkit-text-fill-color:#1a0c02 !important;opacity:1 !important;
-      border:none;outline:none;background:rgba(255,254,248,0.7);flex:1;line-height:1.5;
-      border-radius:6px;padding:4px 8px;
-      -webkit-user-select:auto;user-select:auto"
-      placeholder="Add task (Enter)…" onkeydown="tdAdd(event,${idx})">
-  </div></div>`;
+h+='</div>';
   el.innerHTML=h;
   // Auto-size all task textareas after DOM is fully laid out
   setTimeout(()=>{
@@ -3058,9 +3059,14 @@ function tdUpd(idx,li,v){
 function tdAdd(e,idx){
   if(e.key!=='Enter')return;
   const v=e.target.value.trim();if(!v)return;
-  const ln=(S.nb.pages[idx]||'').split('\n').filter(l=>l);
-  ln.push(formatTodoLine(false,v,''));
-  S.nb.pages[idx]=ln.join('\n');save();renderPage();
+  e.target.value=''; // clear the input immediately
+  const ln=(S.nb.pages[idx]||'').split('\n').filter(l=>l).map(normalizeTodoLine);
+  // Insert new task at top of active group, completed tasks stay at bottom
+  const newTask=formatTodoLine(false,v,'');
+  const active=ln.filter(l=>!parseTodoLine(l).done);
+  const completed=ln.filter(l=>parseTodoLine(l).done);
+  S.nb.pages[idx]=[newTask,...active,...completed].join('\n');
+  save();renderPage();
 }
 function tdSetDue(idx,li,currentDue){
   // Open calendar date picker instead of text prompt
