@@ -1335,7 +1335,7 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
   padding:40px 24px 20px 14px; /* extra right padding so text wraps before page edge */
   background:transparent;border:none;outline:none;
   font-family:var(--font-h);font-size:17px;line-height:32px;
-  color:#1a0c02;caret-color:#c0392b;
+  color:#1a0c02 !important;-webkit-text-fill-color:#1a0c02 !important;caret-color:#c0392b;
   -webkit-user-select:auto;user-select:auto;
   z-index:4;width:100%;height:100%;box-sizing:border-box;
   overflow-y:auto;word-wrap:break-word;
@@ -1353,10 +1353,10 @@ body{font-family:var(--font-u);color:var(--cream);touch-action:pan-y}
 #rich-textarea i,#rich-textarea em{font-style:italic;}
 #rich-textarea u{text-decoration:underline;}
 /* Light mode rich text */
-body.light-theme #rich-textarea{color:rgba(42,22,4,.9);}
+body.light-theme #rich-textarea{color:#1a0c02 !important;-webkit-text-fill-color:#1a0c02 !important;}
 body.light-theme #rich-textarea h1,
 body.light-theme #rich-textarea h2,
-body.light-theme #rich-textarea h3{color:rgba(42,22,4,.95);}
+body.light-theme #rich-textarea h3{color:#1a0c02 !important;-webkit-text-fill-color:#1a0c02 !important;}
 
 /* Writing mode indicator pill */
 .write-mode-pill{
@@ -2874,6 +2874,32 @@ async function renderPage(){
             // Don't steal focus from page header elements
             if(e.target.closest('.pg-head')||e.target.closest('.pg-nav-popup')||
                e.target.closest('.pg-date-popup')||e.target.closest('#fmt-toolbar'))return;
+            // If tap is directly on the rta or its content, let browser handle cursor placement naturally
+            if(e.target===rta||rta.contains(e.target))return;
+            // Tap was on the page background — place cursor at tap position using caretRangeFromPoint
+            if(document.caretRangeFromPoint){
+              const range=document.caretRangeFromPoint(e.clientX,e.clientY);
+              if(range){
+                const sel=window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                rta.focus();
+                return;
+              }
+            } else if(document.caretPositionFromPoint){
+              const pos=document.caretPositionFromPoint(e.clientX,e.clientY);
+              if(pos){
+                const range=document.createRange();
+                range.setStart(pos.offsetNode,pos.offset);
+                range.collapse(true);
+                const sel=window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                rta.focus();
+                return;
+              }
+            }
+            // Fallback — just focus (cursor goes to last position)
             rta.focus();
           }
         };
@@ -4831,7 +4857,14 @@ async function fbGoogleSignIn(){
   try{
     const {GoogleAuthProvider,signInWithPopup,signInWithRedirect}=window._fbModules;
     const provider=new GoogleAuthProvider();
-    // Always try popup first — works on mobile Chrome when triggered by tap
+    // On touch/tablet devices, popups are unreliable — go straight to redirect
+    const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+    if(isTouch){
+      sessionStorage.setItem('ai_google_redirect','1');
+      await signInWithRedirect(fbAuth,provider);
+      return; // page will reload after redirect
+    }
+    // Desktop: try popup first
     try{
       const result=await signInWithPopup(fbAuth,provider);
       if(result?.user){
@@ -4842,12 +4875,12 @@ async function fbGoogleSignIn(){
         toast('Signed in with Google ✦','ok');
       }
     }catch(popupErr){
-      // Only fall back to redirect if popup is explicitly blocked
+      // Fall back to redirect if popup is blocked or closed
       if(popupErr.code==='auth/popup-blocked'||popupErr.code==='auth/popup-closed-by-user'){
         const errEl=document.getElementById('auth-err');
         if(errEl)errEl.textContent=popupErr.code==='auth/popup-closed-by-user'
           ?'Sign-in cancelled — please try again.'
-          :'Popup blocked by browser. Trying redirect…';
+          :'Popup blocked — trying redirect…';
         if(popupErr.code==='auth/popup-blocked'){
           sessionStorage.setItem('ai_google_redirect','1');
           await signInWithRedirect(fbAuth,provider);
