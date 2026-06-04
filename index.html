@@ -3953,9 +3953,28 @@ function printNotebook(){
       }
 
     }else{
-      // Plain text — render with line breaks
-      pageContent=`<div style="font-family:Georgia,serif;font-size:14px;line-height:1.8;
+      // Detect if content is HTML (rich text pasted from Word, etc.) or plain text
+      const isHtml=/<[a-z][^>]*>/i.test(pageText);
+      if(isHtml){
+        // Sanitize and render as HTML — strip Word-specific tags/attrs but keep structure
+        let cleaned=pageText
+          .replace(/<o:p[^>]*>.*?<\/o:p>/gi,'')        // remove Word <o:p> tags
+          .replace(/class="Mso[^"]*"/gi,'')              // remove Word MsoNormal classes
+          .replace(/style="mso-[^"]*"/gi,'')             // remove mso- inline styles
+          .replace(/style="([^"]*)mso-[^;"]*(;)?([^"]*)"/gi,'style="$1$3"') // strip mso- from mixed styles
+          .replace(/<span\s*>/gi,'<span>')               // clean empty spans
+          .replace(/<span\s*style="\s*"\s*>/gi,'')       // remove empty style spans
+          .replace(/<\/span>\s*(?=<\/span>)/gi,'</span>') // collapse nested empty spans
+          .replace(/
+{3,}/g,'
+
+');                    // collapse excess blank lines
+        pageContent=`<div style="font-family:Georgia,serif;font-size:14px;line-height:1.8;color:#1a1a1a">${cleaned}</div>`;
+      }else{
+        // Plain text — escape and preserve line breaks
+        pageContent=`<div style="font-family:Georgia,serif;font-size:14px;line-height:1.8;
         white-space:pre-wrap;color:#1a1a1a">${pageText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      }
     }
 
     if(pageContent){
