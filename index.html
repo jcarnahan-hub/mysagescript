@@ -2635,6 +2635,7 @@ function seed(){
     {title:'Personal Notes', folder:'personal',cov:7, emoji:'🌸', pages:[''], tpl:'lined'},
   ];
   seeds.forEach(s=>S.notebooks.push(mkNB(s)));
+  window._freshDevice=true; // local data is seeds only — always trust Firebase over this
   save();
 }
 function mkNB(s){
@@ -5269,16 +5270,17 @@ function fbStartListener(){
       return;
     }
 
-    // Skip if remote is older than or same as what we pushed
-    // (prevents echo: we push → listener fires → we apply our own push)
+    // Skip if remote is older than or same as local
+    // EXCEPTION: fresh device (seeded placeholders only) — always trust Firebase
     const localTs=new Date(S.notebooks[0]?.modified||0).getTime();
-    if(remoteTs<=localTs){
+    if(!window._freshDevice && remoteTs<=localTs){
       firstSnapshot=false;
       return;
     }
 
     // Genuine new remote data — save backup first, then apply
     fbLastAppliedTs=remoteTs;
+    window._freshDevice=false; // real data loading — restore normal echo suppression
 
     // ── SAFETY BACKUP before overwriting local data ──
     // Only backup if local has meaningful content
