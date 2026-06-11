@@ -2520,6 +2520,21 @@ function init(){
       const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')procPdf(f)});
   }
 
+  // DEBUG: add visible sign-in error display for tablet (no dev tools)
+  window._showAuthDebug=function(msg){
+    let dbg=document.getElementById('auth-debug-overlay');
+    if(!dbg){
+      dbg=document.createElement('div');
+      dbg.id='auth-debug-overlay';
+      dbg.style.cssText='position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.85);color:#fff;font-size:13px;padding:12px;z-index:99999;max-height:40vh;overflow-y:auto;white-space:pre-wrap;font-family:monospace;';
+      dbg.innerHTML='<b>Auth Debug (tap to close)</b><br>';
+      dbg.onclick=()=>dbg.remove();
+      document.body.appendChild(dbg);
+    }
+    dbg.innerHTML+='\n'+new Date().toLocaleTimeString()+': '+msg;
+    console.log('[AuthDebug]',msg);
+  };
+
   // Keyboard
   document.addEventListener('keydown',e=>{
     const tag=document.activeElement?.tagName;
@@ -4784,10 +4799,20 @@ async function fbGoogleSignIn(){
   }
   const errEl=document.getElementById('auth-err');
   if(errEl)errEl.textContent='';
+  window._showAuthDebug&&window._showAuthDebug('signInWithGoogle called');
   try{
     const {GoogleAuthProvider,signInWithPopup,signInWithRedirect}=window._fbModules;
     const provider=new GoogleAuthProvider();
-    // Always try popup first — works on mobile Chrome when triggered by tap
+    // Touch/tablet devices: skip popup entirely, use redirect which is reliable
+    const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+    window._showAuthDebug&&window._showAuthDebug('isTouch='+isTouch+' maxTouchPoints='+navigator.maxTouchPoints);
+    if(isTouch){
+      window._showAuthDebug&&window._showAuthDebug('Calling signInWithRedirect...');
+      sessionStorage.setItem('ai_google_redirect','1');
+      await signInWithRedirect(fbAuth,provider);
+      return;
+    }
+    // Desktop: try popup first
     try{
       const result=await signInWithPopup(fbAuth,provider);
       if(result?.user){
@@ -4798,12 +4823,11 @@ async function fbGoogleSignIn(){
         toast('Signed in with Google ✦','ok');
       }
     }catch(popupErr){
-      // Only fall back to redirect if popup is explicitly blocked
       if(popupErr.code==='auth/popup-blocked'||popupErr.code==='auth/popup-closed-by-user'){
         const errEl=document.getElementById('auth-err');
         if(errEl)errEl.textContent=popupErr.code==='auth/popup-closed-by-user'
           ?'Sign-in cancelled — please try again.'
-          :'Popup blocked by browser. Trying redirect…';
+          :'Popup blocked — trying redirect…';
         if(popupErr.code==='auth/popup-blocked'){
           sessionStorage.setItem('ai_google_redirect','1');
           await signInWithRedirect(fbAuth,provider);
@@ -4816,6 +4840,7 @@ async function fbGoogleSignIn(){
       }
     }
   }catch(e){
+    window._showAuthDebug&&window._showAuthDebug('OUTER ERROR: '+e.message+' code='+e.code);
     const errEl=document.getElementById('auth-err');
     if(errEl)errEl.textContent=e.message;
   }
@@ -4825,9 +4850,11 @@ async function fbGoogleSignIn(){
 // Always call this — don't rely on sessionStorage flag which can be lost on redirect
 async function checkGoogleRedirect(){
   if(!fbAuth||!fbConfigured)return;
+  window._showAuthDebug&&window._showAuthDebug('checkGoogleRedirect called. flag='+sessionStorage.getItem('ai_google_redirect'));
   try{
     const {getRedirectResult}=window._fbModules;
     const result=await getRedirectResult(fbAuth);
+    window._showAuthDebug&&window._showAuthDebug('getRedirectResult done. user='+(result?.user?.email||'none'));
     if(result?.user){
       sessionStorage.removeItem('ai_google_redirect');
       fbUser=result.user;
@@ -4836,10 +4863,10 @@ async function checkGoogleRedirect(){
       closeM('m-auth');
       toast('Signed in with Google ✦','ok');
     }else{
-      // No redirect result — check if already signed in via onAuthStateChanged
       sessionStorage.removeItem('ai_google_redirect');
     }
   }catch(e){
+    window._showAuthDebug&&window._showAuthDebug('checkGoogleRedirect ERROR: '+e.message+' code='+e.code);
     console.warn('Redirect sign-in result:',e.message);
     sessionStorage.removeItem('ai_google_redirect');
   }
