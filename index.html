@@ -13,7 +13,6 @@
 <!-- Firebase v10 modular SDK -->
 <script type="module">
   import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAnalytics }                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
            signOut, onAuthStateChanged,
            GoogleAuthProvider, signInWithPopup,
@@ -24,7 +23,7 @@
            getDownloadURL, deleteObject, listAll, getMetadata, getBytes }
            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   window._fbModules = {
-    initializeApp, getAnalytics,
+    initializeApp,
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
@@ -4663,7 +4662,6 @@ function fbInit(){
   try{
     const {initializeApp,getAnalytics,getAuth,getFirestore,onAuthStateChanged,getStorage}=window._fbModules;
     fbApp=initializeApp(FIREBASE_CONFIG);
-    try{getAnalytics(fbApp);}catch(e){}
     fbAuth=getAuth(fbApp);
     fbDb=getFirestore(fbApp);
     fbStorage=getStorage(fbApp);
@@ -4850,9 +4848,11 @@ async function fbGoogleSignIn(){
 // Always call this — don't rely on sessionStorage flag which can be lost on redirect
 async function checkGoogleRedirect(){
   if(!fbAuth||!fbConfigured)return;
-  window._showAuthDebug&&window._showAuthDebug('checkGoogleRedirect called. flag='+sessionStorage.getItem('ai_google_redirect'));
+  window._showAuthDebug&&window._showAuthDebug('checkGoogleRedirect called');
   try{
     const {getRedirectResult}=window._fbModules;
+    // Always call getRedirectResult — don't rely on sessionStorage flag
+    // (sessionStorage is cleared by Android Chrome during cross-origin redirects)
     const result=await getRedirectResult(fbAuth);
     window._showAuthDebug&&window._showAuthDebug('getRedirectResult done. user='+(result?.user?.email||'none'));
     if(result?.user){
@@ -4862,8 +4862,6 @@ async function checkGoogleRedirect(){
       fbStartListener();
       closeM('m-auth');
       toast('Signed in with Google ✦','ok');
-    }else{
-      sessionStorage.removeItem('ai_google_redirect');
     }
   }catch(e){
     window._showAuthDebug&&window._showAuthDebug('checkGoogleRedirect ERROR: '+e.message+' code='+e.code);
