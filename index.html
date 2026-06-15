@@ -2519,19 +2519,37 @@ function init(){
       const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')procPdf(f)});
   }
 
-  // DEBUG: add visible sign-in error display for tablet (no dev tools)
+  // DEBUG: add visible sign-in error display + force load button for tablet
   window._showAuthDebug=function(msg){
     let dbg=document.getElementById('auth-debug-overlay');
     if(!dbg){
       dbg=document.createElement('div');
       dbg.id='auth-debug-overlay';
       dbg.style.cssText='position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.85);color:#fff;font-size:13px;padding:12px;z-index:99999;max-height:40vh;overflow-y:auto;white-space:pre-wrap;font-family:monospace;';
-      dbg.innerHTML='<b>Auth Debug (tap to close)</b><br>';
-      dbg.onclick=()=>dbg.remove();
+      dbg.innerHTML='<b>Auth Debug (tap to close)</b> <button onclick="window._forceLoad()" style="background:#4a7;color:#fff;border:none;padding:4px 10px;border-radius:4px;margin-left:8px;font-size:13px;cursor:pointer">⬇ Force Load My Data</button><br>';
+      dbg.onclick=(e)=>{if(e.target===dbg||e.target.tagName==='B')dbg.remove();};
       document.body.appendChild(dbg);
     }
     dbg.innerHTML+='\n'+new Date().toLocaleTimeString()+': '+msg;
     console.log('[AuthDebug]',msg);
+  };
+
+  window._forceLoad=async function(){
+    window._showAuthDebug('Force load triggered...');
+    try{
+      if(!fbAuth){window._showAuthDebug('ERROR: fbAuth not ready');return;}
+      const user=fbAuth.currentUser;
+      window._showAuthDebug('currentUser='+( user?user.email:'null'));
+      if(!user){window._showAuthDebug('Not signed in — cannot load');return;}
+      fbUser=user;
+      window._freshDevice=true;
+      fbLastAppliedTs=0;
+      window._showAuthDebug('Starting listener...');
+      fbStartListener();
+      window._showAuthDebug('Listener started — waiting for snapshot...');
+    }catch(e){
+      window._showAuthDebug('Force load ERROR: '+e.message);
+    }
   };
 
   // Keyboard
@@ -5252,54 +5270,48 @@ function fbStartListener(){
   let firstSnapshot=true; // suppress toast on initial load
 
   fbUnsubscribe=onSnapshot(doc(fbDb,'users',uid,'data','main'),snap=>{
-    if(!snap.exists())return;
+    if(!snap.exists()){window._showAuthDebug&&window._showAuthDebug('onSnapshot: doc does not exist');return;}
     const data=snap.data();
     const remoteTs=new Date(data.updatedAt||0).getTime();
+    window._showAuthDebug&&window._showAuthDebug('onSnapshot fired. remoteTs='+new Date(remoteTs).toISOString()+' freshDevice='+window._freshDevice+' fbLastAppliedTs='+fbLastAppliedTs);
 
-    // CRITICAL: Never overwrite S.notebooks while a notebook is open or closing.
-    // S.nb points into S.notebooks — replacing it here silently wipes editor content.
     if(S.nb||window._nbClosing){
+      window._showAuthDebug&&window._showAuthDebug('BLOCKED: notebook open or closing');
       console.log('[SageScript] onSnapshot suppressed — notebook open or closing');
       firstSnapshot=false;
       return;
     }
 
-    // Skip if we've already applied this exact snapshot
     if(remoteTs<=fbLastAppliedTs){
+      window._showAuthDebug&&window._showAuthDebug('BLOCKED: remoteTs('+remoteTs+') <= fbLastAppliedTs('+fbLastAppliedTs+')');
       firstSnapshot=false;
       return;
     }
 
-    // Skip if remote is older than or same as local
-    // EXCEPTION: fresh device (seeded placeholders only) — always trust Firebase
     const localTs=new Date(S.notebooks[0]?.modified||0).getTime();
+    window._showAuthDebug&&window._showAuthDebug('localTs='+new Date(localTs).toISOString()+' freshDevice='+window._freshDevice);
     if(!window._freshDevice && remoteTs<=localTs){
+      window._showAuthDebug&&window._showAuthDebug('BLOCKED: remoteTs<=localTs and not freshDevice');
       firstSnapshot=false;
       return;
     }
 
-    // Genuine new remote data — save backup first, then apply
     fbLastAppliedTs=remoteTs;
-    window._freshDevice=false; // real data loading — restore normal echo suppression
+    window._freshDevice=false;
 
-    // ── SAFETY BACKUP before overwriting local data ──
-    // Only backup if local has meaningful content
     const localNbCount=S.notebooks.length;
     const localPageCount=S.notebooks.reduce((t,n)=>t+(n.pages?.filter(p=>p.trim()).length||0),0);
     const remoteNbCount=(data.notebooks||[]).length;
     const remotePageCount=(data.notebooks||[]).reduce((t,n)=>t+(n.pages?.filter(p=>p.trim()).length||0),0);
+    window._showAuthDebug&&window._showAuthDebug('localNb='+localNbCount+' localPg='+localPageCount+' remoteNb='+remoteNbCount+' remotePg='+remotePageCount);
 
-    // Only backup before overwrite if local has meaningful content
-    // Backup is now handled by the 5-minute interval instead
     if(localNbCount>0&&localPageCount>2){
       saveBackup();
     }
 
-    // CRITICAL PROTECTION: if local has more content than remote, don't overwrite
-    // This prevents Firebase from wiping local notebooks that haven't synced yet
     if(localPageCount > remotePageCount + 2 && localNbCount >= remoteNbCount){
+      window._showAuthDebug&&window._showAuthDebug('BLOCKED: local richer than remote');
       console.warn(`SageScript: SYNC BLOCKED — local has ${localPageCount} pages (${localNbCount} notebooks), remote has only ${remotePageCount} pages (${remoteNbCount} notebooks). Local data is richer — skipping overwrite.`);
-      // Show warning to user
       const dot=document.getElementById('sb-sync-dot');
       if(dot){dot.style.background='#e67e22';dot.title='Sync conflict — local has more data than cloud';}
       toast('⚠ Sync paused — your local data has more content than the cloud. Open ☁️ Sync to resolve.','info',8000);
@@ -5307,7 +5319,8 @@ function fbStartListener(){
       return;
     }
 
-    window._applyingRemoteData=true; // flag to prevent echo
+    window._showAuthDebug&&window._showAuthDebug('APPLYING remote data — '+remoteNbCount+' notebooks');
+    window._applyingRemoteData=true;
     console.log('[SageScript] onSnapshot APPLYING remote data. remoteTs=',remoteTs,'localTs=',localTs,'S.nb=',S.nb?.id);
     if(data.notebooks)S.notebooks=data.notebooks;
     if(data.quickNotes)S.quickNotes=data.quickNotes;
