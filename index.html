@@ -5334,7 +5334,7 @@ function fbStartListener(){
 
     // CRITICAL: Never overwrite S.notebooks while a notebook is open or closing.
     // S.nb points into S.notebooks — replacing it here silently wipes editor content.
-    if(S.nb||window._nbClosing||window._fbPushing){
+    if(window._nbClosing||window._fbPushing){
       console.log('[SageScript] onSnapshot suppressed — notebook open, closing, or push in flight');
       firstSnapshot=false;
       return;
