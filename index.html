@@ -3965,10 +3965,8 @@ function printNotebook(){
           .replace(/<span\s*>/gi,'<span>')               // clean empty spans
           .replace(/<span\s*style="\s*"\s*>/gi,'')       // remove empty style spans
           .replace(/<\/span>\s*(?=<\/span>)/gi,'</span>') // collapse nested empty spans
-          .replace(/
-{3,}/g,'
+          .replace(/\n{3,}/g,'\n\n')
 
-');                    // collapse excess blank lines
         pageContent=`<div style="font-family:Georgia,serif;font-size:14px;line-height:1.8;color:#1a1a1a">${cleaned}</div>`;
       }else{
         // Plain text — escape and preserve line breaks
