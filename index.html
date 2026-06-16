@@ -2416,7 +2416,7 @@ const S={
 };
 
 /* ═══════ INIT ═══════ */
-function init(){
+function init(){checkGoogleRedirect();
   genStars();tickClock();setInterval(tickClock,30000);
   // Auto-push to Firebase every 30 seconds if signed in (like Microsoft AutoSave)
   // Also saves a local backup every 5 minutes (not every push)
