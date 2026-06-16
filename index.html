@@ -13,7 +13,7 @@
 <!-- Firebase v10 modular SDK -->
 <script type="module">
   import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  import { getAuth, setPersistenve, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword,
            signOut, onAuthStateChanged,
            GoogleAuthProvider, signInWithPopup,
            signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -24,7 +24,7 @@
            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   window._fbModules = {
     initializeApp,
-    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc,
@@ -4684,9 +4684,10 @@ function fbInit(){
     return;
   }
   try{
-    const {initializeApp,getAnalytics,getAuth,getFirestore,onAuthStateChanged,getStorage}=window._fbModules;
+    const {initializeApp,getAnalytics,getAuth, setPersistence, browserLocalPersistence, getFirestore,onAuthStateChanged,getStorage}=window._fbModules;
     fbApp=initializeApp(FIREBASE_CONFIG);
     fbAuth=getAuth(fbApp);
+    setPersistence( fbAuth, browserLocalPersistence);
     fbDb=getFirestore(fbApp);
     fbStorage=getStorage(fbApp);
     onAuthStateChanged(fbAuth,user=>{
